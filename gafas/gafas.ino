@@ -8,7 +8,8 @@
 
 DFRobotDFPlayerMini myDFPlayer;
 
-const char* targetDeviceName = "sala_sistema";
+const char* targetDeviceName1 = "sala_sistema";
+const char* targetDeviceName2 = "baston_alerta";
 
 int scanTime = 1;
 BLEScan* pBLEScan;
@@ -31,8 +32,8 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
   void onResult(BLEAdvertisedDevice advertisedDevice) {
     String deviceName = advertisedDevice.getName().c_str();
     int rssi = advertisedDevice.getRSSI();
-
-    if (deviceName == targetDeviceName) {
+    //sala de sistema
+    if (deviceName == targetDeviceName1) {
       Serial.printf("Encontrado %s con RSSI: %d dBm\n", deviceName, rssi);
 
       // Entrando cerca
@@ -47,6 +48,12 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
         Serial.println("↩️  Se alejó, reseteo bandera");
         dispositivoCerca = false;
       }
+    }
+    //baston
+    if (deviceName == targetDeviceName2) {
+      Serial.printf("🚨 Alerta recibida de %s\n", deviceName);
+      myDFPlayer.play(2);  // 👈 audio 2 cuando bastón detecta obstáculo
+      delay(2000);
     }
   }
 };
