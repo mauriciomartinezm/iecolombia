@@ -3,35 +3,41 @@
 #include <BLEScan.h>
 #include <BLEAdvertisedDevice.h>
 #include "Arduino.h"
-#include "DFRobotDFPlayerMini.h"
+#include <DFRobotDFPlayerMini.h>
+
 
 DFRobotDFPlayerMini myDFPlayer;
 
 const char* targetDeviceName = "sala_sistema";
-//const int buzzerPin = 19;
-//const int ledPin = 18;
 
 int scanTime = 1;
 BLEScan* pBLEScan;
 
+// bandera para controlar si ya se disparó el audio
+bool dispositivoCerca = false;
+
+// Histéresis de RSSI
+const int RSSI_CERCA = -50;  // umbral para "cerca"
+const int RSSI_LEJOS = -65;  // umbral para "resetear"
+
 class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
   void onResult(BLEAdvertisedDevice advertisedDevice) {
     String deviceName = advertisedDevice.getName().c_str();
-    //Serial.print("Nombre dispositivos: ");
-    //Serial.println(deviceName);
     int rssi = advertisedDevice.getRSSI();
-    //Serial.printf("Encontrado %s con RSSI: %d dBm\n", deviceName, rssi);
+
     if (deviceName == targetDeviceName) {
       Serial.printf("Encontrado %s con RSSI: %d dBm\n", deviceName, rssi);
 
-      if (rssi > -50) {  // señal fuerte = cerca
-        //digitalWrite(ledPin, HIGH);
-        //tone(buzzerPin, 3000, 200); // beep corto
-        Serial.println("Dispositivo objetivo CERCA");
+      // Entrando cerca
+      if (rssi > RSSI_CERCA && !dispositivoCerca) {
+        Serial.println("📢 Dispositivo objetivo CERCA -> Reproduciendo audio");
         myDFPlayer.play(1);
-      } else {
-        //digitalWrite(ledPin, LOW);
-        Serial.println("Dispositivo detectado, pero señal débil");
+        dispositivoCerca = true;
+      }
+      // Alejándose lo suficiente -> reset
+      else if (rssi < RSSI_LEJOS && dispositivoCerca) {
+        Serial.println("↩️  Se alejó, reseteo bandera");
+        dispositivoCerca = false;
       }
     }
   }
@@ -47,16 +53,8 @@ void setup() {
   }
   Serial.println("✅ DFPlayer listo");
   myDFPlayer.volume(20);
-  int total = myDFPlayer.readFileCounts();
-  int actual = myDFPlayer.readCurrentFileNumber();
-  Serial.print("Archivos totales: ");
-  Serial.println(total);
-
-  //pinMode(buzzerPin, OUTPUT);
-  //pinMode(ledPin, OUTPUT);
 
   Serial.println("Iniciando escaneo BLE...");
-
   BLEDevice::init("");
   pBLEScan = BLEDevice::getScan();
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
@@ -66,10 +64,6 @@ void setup() {
 }
 
 void loop() {
-  //puntero en lugar de objeto
   BLEScanResults* foundDevices = pBLEScan->start(1, false);
-  int count = foundDevices->getCount();
-
-  //Serial.printf("Escaneo completado. %d dispositivos encontrados\n", count);
   pBLEScan->clearResults();  // limpia memoria
 }

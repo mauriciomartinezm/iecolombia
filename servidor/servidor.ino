@@ -1,30 +1,26 @@
-#include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
-
-const char* ssid = "ESP8266_Server";   // Nombre de la red WiFi
-const char* password = "12345678";     // Clave de la red
-
-ESP8266WebServer server(80);
-
-void handleRoot() {
-  server.send(200, "text/plain", "Hola desde ESP8266 como servidor!");
-}
+#include <BLEDevice.h>
+#include <BLEUtils.h>
+#include <BLEServer.h>
 
 void setup() {
   Serial.begin(9600);
+  Serial.println("Iniciando ESP32 como servidor BLE...");
 
-  // Modo Access Point
-  WiFi.softAP(ssid, password);
+  // Inicializar BLE con el nombre que se anunciará
+  BLEDevice::init("sala_sistema");
 
-  Serial.println("Servidor iniciado");
-  Serial.print("IP del ESP8266: ");
-  Serial.println(WiFi.softAPIP());
+  // Crear un servidor BLE (aunque no tenga servicios, basta para anunciar)
+  BLEServer *pServer = BLEDevice::createServer();
 
-  // Rutas del servidor
-  server.on("/", handleRoot);
-  server.begin();
+  // Configurar el advertising (anuncio)
+  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising->start();
+
+  Serial.println("✅ Anuncio iniciado como: sala_sistema");
 }
 
 void loop() {
-  server.handleClient();
+  // Aquí no necesitas nada, solo anunciar constantemente
+  delay(2000);
+  Serial.println("📡 Anunciando como sala_sistema...");
 }
