@@ -3,7 +3,7 @@
 #include <BLEScan.h>
 #include <BLEAdvertisedDevice.h>
 #include "Arduino.h"
-#include <DFRobotDFPlayerMini.h>
+#include "DFRobotDFPlayerMini.h"
 
 
 DFRobotDFPlayerMini myDFPlayer;
@@ -32,6 +32,8 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
       if (rssi > RSSI_CERCA && !dispositivoCerca) {
         Serial.println("📢 Dispositivo objetivo CERCA -> Reproduciendo audio");
         myDFPlayer.play(1);
+        delay(2000);
+        //Serial.println("regresando");
         dispositivoCerca = true;
       }
       // Alejándose lo suficiente -> reset
