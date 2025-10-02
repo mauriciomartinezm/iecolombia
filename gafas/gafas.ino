@@ -14,7 +14,7 @@ const char* targetDeviceName2 = "baston_alerta";
 int scanTime = 1;
 BLEScan* pBLEScan;
 
-// bandera para controlar si ya se disparó el audio
+// bandera para controlar si ya se disparò el audio
 bool dispositivoCerca = false;
 
 // Histéresis de RSSI
