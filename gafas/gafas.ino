@@ -1,46 +1,75 @@
-#include "WiFi.h"
-#include <chrono> // Para la biblioteca chrono
+#include <BLEDevice.h>
+#include <BLEUtils.h>
+#include <BLEScan.h>
+#include <BLEAdvertisedDevice.h>
+#include "Arduino.h"
+#include "DFRobotDFPlayerMini.h"
 
-const char* targetSSID = "ESP8266_Server";  // Nombre de la red que se quiere detectar
-const int buzzerPin = 19;
-const int ledPin = 18;
+DFRobotDFPlayerMini myDFPlayer;
+
+const char* targetDeviceName = "sala_sistema";
+//const int buzzerPin = 19;
+//const int ledPin = 18;
+
+int scanTime = 1;
+BLEScan* pBLEScan;
+
+class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
+  void onResult(BLEAdvertisedDevice advertisedDevice) {
+    String deviceName = advertisedDevice.getName().c_str();
+    //Serial.print("Nombre dispositivos: ");
+    //Serial.println(deviceName);
+    int rssi = advertisedDevice.getRSSI();
+    //Serial.printf("Encontrado %s con RSSI: %d dBm\n", deviceName, rssi);
+    if (deviceName == targetDeviceName) {
+      Serial.printf("Encontrado %s con RSSI: %d dBm\n", deviceName, rssi);
+
+      if (rssi > -50) {  // señal fuerte = cerca
+        //digitalWrite(ledPin, HIGH);
+        //tone(buzzerPin, 3000, 200); // beep corto
+        Serial.println("Dispositivo objetivo CERCA");
+        myDFPlayer.play(1);
+      } else {
+        //digitalWrite(ledPin, LOW);
+        Serial.println("Dispositivo detectado, pero señal débil");
+      }
+    }
+  }
+};
 
 void setup() {
   Serial.begin(115200);
-  pinMode(buzzerPin, OUTPUT);
-  pinMode(ledPin, OUTPUT);
-  WiFi.mode(WIFI_STA);   // Modo estación (solo escaneo, no se conecta)
-  WiFi.disconnect();     // Desconectado de cualquier red
-  delay(100);
-  Serial.println("Escaneando redes WiFi...");
+  Serial2.begin(9600, SERIAL_8N1, 26, 25);
+
+  if (!myDFPlayer.begin(Serial2, true, false)) {
+    Serial.println("❌ No inicializa DFPlayer");
+    return;
+  }
+  Serial.println("✅ DFPlayer listo");
+  myDFPlayer.volume(20);
+  int total = myDFPlayer.readFileCounts();
+  int actual = myDFPlayer.readCurrentFileNumber();
+  Serial.print("Archivos totales: ");
+  Serial.println(total);
+
+  //pinMode(buzzerPin, OUTPUT);
+  //pinMode(ledPin, OUTPUT);
+
+  Serial.println("Iniciando escaneo BLE...");
+
+  BLEDevice::init("");
+  pBLEScan = BLEDevice::getScan();
+  pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
+  pBLEScan->setActiveScan(true);  // true = más rápido, gasta más energía
+  pBLEScan->setInterval(100);
+  pBLEScan->setWindow(99);
 }
 
 void loop() {
-  auto start = std::chrono::high_resolution_clock::now();
+  //puntero en lugar de objeto
+  BLEScanResults* foundDevices = pBLEScan->start(1, false);
+  int count = foundDevices->getCount();
 
-  int n = WiFi.scanNetworks();  // Escanea todas las redes
-  auto end = std::chrono::high_resolution_clock::now();
-
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-  double time_in_seconds = duration.count() / 1000000.0;
-
-  Serial.print("\nEscaneo completado, tiempo de escaneo: ");
-  Serial.println(time_in_seconds);
-
-  for (int i = 0; i < n; ++i) {
-    String ssid = WiFi.SSID(i);
-    int rssi = WiFi.RSSI(i); // Intensidad de señal
-    
-    Serial.printf("%d: %s (%d dBm)\n", i + 1, ssid.c_str(), rssi);
-    
-    if (ssid == targetSSID && rssi > -60) {
-      Serial.printf("%d: %s (%d dBm)\n", i + 1, ssid.c_str(), rssi);
-      Serial.println("Red objetivo detectada cerca");
-      //tone(buzzerPin, 3000, 100);
-      digitalWrite(ledPin, HIGH);
-    }
-    else if (ssid == targetSSID && rssi < -60){
-      digitalWrite(ledPin, LOW);
-    }
-  }
+  //Serial.printf("Escaneo completado. %d dispositivos encontrados\n", count);
+  pBLEScan->clearResults();  // limpia memoria
 }
