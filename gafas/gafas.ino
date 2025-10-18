@@ -9,7 +9,7 @@
 DFRobotDFPlayerMini myDFPlayer;
 
 const char* targetDeviceName1 = "sala_sistema";
-const char* targetDeviceName2 = "baston_alerta";
+const char* baston = "baston_alerta";
 
 int scanTime = 1;
 BLEScan* pBLEScan;
@@ -50,9 +50,9 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
       }
     }
     //baston
-    if (deviceName == targetDeviceName2) {
+    if (deviceName == baston) {
       Serial.printf("🚨 Alerta recibida de %s\n", deviceName);
-      myDFPlayer.play(2);  // 👈 audio 2 cuando bastón detecta obstáculo
+      myDFPlayer.play(2);  // audio 2 cuando bastón detecta obstáculo
       delay(2000);
     }
   }
